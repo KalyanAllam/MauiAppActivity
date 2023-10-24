@@ -1,0 +1,53 @@
+﻿@page "/"
+
+<PageTitle>Counter</PageTitle>
+
+<h1>Activity</h1>
+
+<p role="status">@activity</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+    private string activity="";
+
+    private void IncrementCount()
+    {
+        Random rand = new Random();
+        int number = rand.Next(1, 10);
+        switch (number)
+        {
+            case 1:
+                activity="Sing a song";
+                break;
+            case 2:
+                activity = "Walk like a bear";
+                break;
+            case 3:
+                activity = "Dance";
+                break;
+            case 4:
+                activity = "Tell your favorite film dialogue";
+                break;
+            case 5:
+                activity = "Chuckle like a monkey";
+                break;
+            case 6:
+                activity = "Pose like your favorite super hero";
+                break;
+            case 7:
+                activity = "Hop like a Kangaroo";
+                break;
+            case 8:
+                activity = "Hop like a frog";
+                break;
+            case 9:
+                activity = "March like a soldier";
+                break;
+            default:
+                activity = "Do nothing";
+                break;
+           
+        }
+    }
+}
