@@ -1,53 +1,245 @@
-﻿@page "/"
+﻿@using System.Text;
+@using System.Net.Http.Headers;
+@using Microsoft.AspNetCore.Components;
+@using Newtonsoft.Json;
+@using System.Timers;
+@using MauiAppActivity.Models;
+
+@page "/"
 
 <PageTitle>Counter</PageTitle>
 
-<h1>Activity</h1>
-
-<p role="status">@activity</p>
-
+ 
+<p role="status">@Topic</p>
+<p role="status">@QuestionTitle</p>
+<p role="status">@Answer</p>
+<p role="status">@solution</p>
 <button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
 
 @code {
-    private string activity="";
 
+
+    //   using Communication = Microsoft.Maui.ApplicationModel.Communication;
+    private string activity="";
+    public string code;
+    public string matches;
+    QuestionsDatabase questionsDatabase;
+    public int number;
+    public List<Question> Questions { get; set; } = new List<Question>();
+    protected int questionIndex = 0;
+    protected int score = 0;
+    protected int failedIndex = 0;
+    protected string[] failedQuestions = new string[500];
+    public int totaltime; public int totalquestions;
+    public int _currentCount = 0;
+    private System.Timers.Timer _timer;
+    public int maxnumber; public int minumber; public string solution; public string Topic; public string QuestionTitle;
+    public string Answer;
     private void IncrementCount()
     {
-        Random rand = new Random();
-        int number = rand.Next(1, 10);
-        switch (number)
-        {
-            case 1:
-                activity="Sing a song";
-                break;
-            case 2:
-                activity = "Walk like a bear";
-                break;
-            case 3:
-                activity = "Dance";
-                break;
-            case 4:
-                activity = "Tell your favorite film dialogue";
-                break;
-            case 5:
-                activity = "Chuckle like a monkey";
-                break;
-            case 6:
-                activity = "Pose like your favorite super hero";
-                break;
-            case 7:
-                activity = "Hop like a Kangaroo";
-                break;
-            case 8:
-                activity = "Hop like a frog";
-                break;
-            case 9:
-                activity = "March like a soldier";
-                break;
-            default:
-                activity = "Do nothing";
-                break;
-           
-        }
+        questionsDatabase = new QuestionsDatabase();
+        LoadQuestionsAsync();
+
+
+
+
+
+
+
+
     }
+    async Task<List<InQuestion>> GetApiData()
+    {
+        //    string apiUrl = "https://sheet2api.com/v1/UHC796KdSvqC/testsp";
+
+
+        string jwturl = "https://quizapijwt.azurewebsites.net/api/";
+        List<InQuestion> Questions = new List<InQuestion>();
+
+
+        using (var client1 = new HttpClient())
+        {
+            try
+            {
+
+                var postData = new PostData
+                    {
+                        Name = "",
+
+                        Password = ""
+                    };
+                var jsonpost = System.Text.Json.JsonSerializer.Serialize(postData);
+                var content = new StringContent(jsonpost, Encoding.UTF8, "application/json");
+                client1.BaseAddress = new Uri(jwturl);
+
+                client1.DefaultRequestHeaders.Clear();
+                client1.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                HttpResponseMessage Res = await client1.PostAsync("Auth", content);
+
+                if (Res.IsSuccessStatusCode)
+                {
+                    //Storing the response details recieved from web api
+                    string json = await Res.Content.ReadAsStringAsync();
+
+                    // Parse the JSON response to extract the address
+                    dynamic data1 = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
+                    code = data1.token;
+
+
+
+                }
+            }
+            catch (Exception ex)
+            {
+
+
+            }
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+        string connected = "N";
+
+
+
+        string apiUrl = "https://quizapijwt.azurewebsites.net/api/";
+
+        using (HttpClient client = new HttpClient())
+        {
+            try
+            {
+                // Make a GET request to the API
+                //    HttpResponseMessage response = await client.GetAsync(apiUrl);
+                client.BaseAddress = new Uri(apiUrl);
+                client.DefaultRequestHeaders.Clear();
+                //Define request data format
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {code}");
+                HttpResponseMessage response = await client.GetAsync("Questions");
+                // Check if the request was successful (status code 200)
+                if (response.IsSuccessStatusCode)
+                {
+
+                    // Make a GET request to the API
+
+                    connected = "Y";
+                    // Read the content of the response
+                    string jsonString = await response.Content.ReadAsStringAsync();
+
+
+                    // Deserialize the JSON string into an object
+                    Questions = JsonConvert.DeserializeObject<List<InQuestion>>(jsonString);
+                    // truncate sqlLIte table Load sqlite table  from  Questions
+                    //If the first time when you load the api data, it will push data to the sqlite DB.
+
+                    //comment begins
+
+                    List<InQuestion> itemInTheDB = await questionsDatabase.GetItemsAsync();
+                    //    if (itemInTheDB.Count == 0)
+                    // {
+
+
+                    foreach (InQuestion item in itemInTheDB)
+                    {
+                        var result = Questions.FirstOrDefault(c => c.SNo == item.SNo);
+
+                        if (result == null)
+                        {
+                            await questionsDatabase.DeleteItemAsync(item);
+                        }
+                    }
+
+                    foreach (InQuestion itemdb in Questions)
+                    {
+                        var resulty = itemInTheDB.FirstOrDefault(c => c.SNo == itemdb.SNo);
+                        matches = "N";
+
+
+                        if (resulty == null)
+                        { await questionsDatabase.SaveItemAsync(itemdb); }
+
+
+                        if (resulty != null)
+                        {
+                            if ((resulty.No == itemdb.No) && (resulty.Opt1 == itemdb.Opt1) && (resulty.Opt2 == itemdb.Opt2) && (resulty.Opt3 == itemdb.Opt3) && (resulty.Opt4 == itemdb.Opt4)
+                             && (resulty.QuestionTitle == itemdb.QuestionTitle) && (resulty.Solution == itemdb.Solution) && (resulty.Time == itemdb.Time) && (resulty.Answer == itemdb.Answer)
+                             && (resulty.Topic == itemdb.Topic))
+                            { matches = "Y"; }
+
+                        }
+                        else
+                        { await questionsDatabase.SaveItemAsync(itemdb); }
+                        if (matches == "N")
+                        { await questionsDatabase.SaveItemAsync(itemdb); }
+
+                    }
+                    //   }
+                    //comment ends
+
+                }
+                else
+                { // Load  Questions from sql lite  table
+                    Questions = await questionsDatabase.GetItemsAsync();
+
+                }
+            }
+            catch (Exception ex)
+            {
+                if (connected == "N")
+                {
+                    Questions = await questionsDatabase.GetItemsAsync();
+
+                }
+
+
+            }
+        }
+        return Questions;
+    }
+
+    private async Task LoadQuestionsAsync()
+    {
+
+        List<InQuestion> res = await GetApiData();
+
+        Questions.AddRange(res.Select(r => new Question
+            {  SNo = r.No,
+                Topic = r.Topic,
+                QuestionTitle = r.QuestionTitle,
+                Options = new List<string>() { r.Opt1, r.Opt2, r.Opt3, r.Opt4 },
+                Answer = r.Answer,
+                Time =  r.Time  ,
+                Correct = r.Correct,
+                Solution = r.Solution
+
+            })); 
+
+        totaltime = Questions.Sum(Question => Convert.ToInt32(Question.Time));
+
+        totalquestions = (from e in res  select e.No).Count();  
+        maxnumber=(from e in res select e.No).Max();
+        minumber = (from e in res select e.No).Min();
+        Questions= Questions.OrderByDescending(s => s.SNo).ToList();
+
+
+        Random rand = new Random();
+         number = rand.Next(minumber, maxnumber);
+        var result = Questions.FirstOrDefault(c => c.SNo == number);
+        solution = result.Solution;
+        Topic = result.Topic;
+        QuestionTitle = result.QuestionTitle;
+        Answer = result.Answer;
+        }
+
+
 }
