@@ -9,14 +9,30 @@
 
 <PageTitle>Counter</PageTitle>
 
- 
+<p role="status">@Topich</p>
 <p role="status">@Topic</p>
+<p role="status">@QuestionTitleh</p>
+
 <p role="status">@QuestionTitle</p>
+<p role="status">@Answerh</p>
+
 <p role="status">@Answer</p>
-<p role="status">@solution</p>
+ 
 <button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<button class="btn btn-primary" @onclick="ToggleAnswer">@buttonText</button>
+
+<p style="display:@display">@solutionh</p>
+ <p style="display:@display">@solution</p>
+
+ 
 
 @code {
+
+
+
+
+
+
 
 
     //   using Communication = Microsoft.Maui.ApplicationModel.Communication;
@@ -35,8 +51,43 @@
     private System.Timers.Timer _timer;
     public int maxnumber; public int minumber; public string solution; public string Topic; public string QuestionTitle;
     public string Answer;
+    bool isInitialized = false;
+    string solutionh;
+
+    string Topich;
+
+    string QuestionTitleh;
+
+    string Answerh;
+
+    List<InQuestion> res;
+    private string display = "none";
+    private string buttonText = "Hide Solution";
+
+
+
+    private void ToggleAnswer()
+    {
+        if (display == "none")
+        {
+            display = "block";
+            buttonText = "Hide Solution";
+        }
+        else
+        {
+            display = "none";
+            buttonText = "Show Solution";
+        }
+    }
+
     private void IncrementCount()
     {
+
+
+
+
+
+
         questionsDatabase = new QuestionsDatabase();
         LoadQuestionsAsync();
 
@@ -209,36 +260,46 @@
 
     private async Task LoadQuestionsAsync()
     {
+       
+       display = "none";
+            buttonText = "Show Solution";
+       
+        if (!isInitialized)
+        {
+            
+            res = await GetApiData();
 
-        List<InQuestion> res = await GetApiData();
+            Questions.AddRange(res.Select(r => new Question
+                {
+                    SNo = r.No,
+                    Topic = r.Topic,
+                    QuestionTitle = r.QuestionTitle,
+                    Options = new List<string>() { r.Opt1, r.Opt2, r.Opt3, r.Opt4 },
+                    Answer = r.Answer,
+                    Time = r.Time,
+                    Correct = r.Correct,
+                    Solution = r.Solution
 
-        Questions.AddRange(res.Select(r => new Question
-            {  SNo = r.No,
-                Topic = r.Topic,
-                QuestionTitle = r.QuestionTitle,
-                Options = new List<string>() { r.Opt1, r.Opt2, r.Opt3, r.Opt4 },
-                Answer = r.Answer,
-                Time =  r.Time  ,
-                Correct = r.Correct,
-                Solution = r.Solution
+                }));
+            isInitialized = true;
 
-            })); 
-
-        totaltime = Questions.Sum(Question => Convert.ToInt32(Question.Time));
-
-        totalquestions = (from e in res  select e.No).Count();  
+        }
         maxnumber=(from e in res select e.No).Max();
         minumber = (from e in res select e.No).Min();
         Questions= Questions.OrderByDescending(s => s.SNo).ToList();
 
 
         Random rand = new Random();
-         number = rand.Next(minumber, maxnumber);
+        number = rand.Next(minumber, maxnumber);
         var result = Questions.FirstOrDefault(c => c.SNo == number);
         solution = result.Solution;
+         solutionh = "Solution";
         Topic = result.Topic;
+         Topich = "Topic";
         QuestionTitle = result.QuestionTitle;
+          QuestionTitleh = "QuestionTitle";
         Answer = result.Answer;
+          Answerh = "Answer";
         }
 
 
